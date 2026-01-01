@@ -6,7 +6,7 @@ export function HeroSection() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: 'url("/luxury-clock-showroom-interior-with-elegant-analog.jpg")',
+          backgroundImage: 'url("/background.jpg")',
         }}
       />
 
