@@ -10,10 +10,20 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { Spinner } from "@workspace/ui/components/spinner"
 
+export interface ProductFormData {
+  name: string
+  sku: string
+  category: string
+  price: string | number
+  stock: string | number
+  description: string
+  image?: string
+}
+
 interface ProductFormProps {
-  product?: any
+  product?: ProductFormData & { id?: string }
   isLoading: boolean
-  onSubmit: (data: any) => void
+  onSubmit: (data: ProductFormData) => void
 }
 
 export default function ProductForm({ product, isLoading, onSubmit }: ProductFormProps) {
@@ -67,7 +77,7 @@ export default function ProductForm({ product, isLoading, onSubmit }: ProductFor
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="category">Category *</Label>
-          <Select value={formData.category} onValueChange={(value) => handleChange("category", value)}>
+          <Select value={formData.category} onValueChange={(value: string) => handleChange("category", value)}>
             <SelectTrigger id="category" disabled={isLoading}>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>

@@ -35,7 +35,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: any) => {
       if (user) {
         setUser(user)
       }

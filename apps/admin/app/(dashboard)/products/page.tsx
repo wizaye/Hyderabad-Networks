@@ -17,7 +17,7 @@ import {
 } from "@workspace/ui/components/dialog"
 import { Plus, Search, Upload, Download, Edit2, Trash2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import ProductForm from "@/components/admin/product-form"
+import ProductForm, { type ProductFormData } from "@/components/admin/product-form"
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import { createClient } from "@/lib/supabase/client"
 import { Spinner } from "@workspace/ui/components/spinner"
@@ -65,7 +65,7 @@ export default function ProductsPage() {
 
     const subscription = supabase
       .channel("products")
-      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, (payload: any) => {
         if (payload.eventType === "INSERT") {
           setProducts((prev) => [payload.new as Product, ...prev])
         } else if (payload.eventType === "UPDATE") {
@@ -90,7 +90,7 @@ export default function ProductsPage() {
     )
   }, [products, searchQuery])
 
-  const handleAddProduct = async (newProduct: any) => {
+  const handleAddProduct = async (newProduct: ProductFormData) => {
     setIsSaving(true)
     try {
       const { error } = await supabase.from("products").insert([
@@ -98,8 +98,8 @@ export default function ProductsPage() {
           name: newProduct.name,
           sku: newProduct.sku,
           category: newProduct.category,
-          price: newProduct.price,
-          stock: newProduct.stock,
+          price: Number(newProduct.price),
+          stock: Number(newProduct.stock),
           description: newProduct.description,
           image: newProduct.image || "/placeholder.svg",
         },
@@ -115,7 +115,7 @@ export default function ProductsPage() {
     }
   }
 
-  const handleEditProduct = async (updatedProduct: any) => {
+  const handleEditProduct = async (updatedProduct: ProductFormData) => {
     if (!selectedProduct) return
     setIsSaving(true)
     try {
@@ -125,8 +125,8 @@ export default function ProductsPage() {
           name: updatedProduct.name,
           sku: updatedProduct.sku,
           category: updatedProduct.category,
-          price: updatedProduct.price,
-          stock: updatedProduct.stock,
+          price: Number(updatedProduct.price),
+          stock: Number(updatedProduct.stock),
           description: updatedProduct.description,
           image: updatedProduct.image || "/placeholder.svg",
         })
@@ -200,7 +200,7 @@ export default function ProductsPage() {
         return
       }
 
-      const headers = lines[0].split(",").map((h) => h.trim().replace(/"/g, "").toLowerCase())
+      const headers = (lines[0] ?? "").split(",").map((h) => h.trim().replace(/"/g, "").toLowerCase())
       const requiredHeaders = ["name", "sku", "category", "price", "stock", "description"]
       const hasRequiredHeaders = requiredHeaders.every((h) => headers.includes(h))
 
@@ -216,7 +216,10 @@ export default function ProductsPage() {
       const importedProducts: Product[] = []
 
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(",").map((v) => v.trim().replace(/"/g, ""))
+        const line = lines[i]
+        if (!line) continue
+
+        const values = line.split(",").map((v) => v.trim().replace(/"/g, ""))
         if (values.length < requiredHeaders.length || values.every((v) => !v)) continue
 
         const product: Product = {
@@ -224,8 +227,8 @@ export default function ProductsPage() {
           name: values[headers.indexOf("name")] || "",
           sku: values[headers.indexOf("sku")] || "",
           category: values[headers.indexOf("category")] || "",
-          price: Number.parseFloat(values[headers.indexOf("price")]) || 0,
-          stock: Number.parseInt(values[headers.indexOf("stock")]) || 0,
+          price: Number.parseFloat(values[headers.indexOf("price")] || "0") || 0,
+          stock: Number.parseInt(values[headers.indexOf("stock")] || "0") || 0,
           description: values[headers.indexOf("description")] || "",
           image: "/placeholder.svg",
         }
@@ -307,7 +310,7 @@ export default function ProductsPage() {
                 </DialogDescription>
               </DialogHeader>
               <ProductForm
-                product={selectedProduct}
+                product={selectedProduct || undefined}
                 isLoading={isSaving}
                 onSubmit={selectedProduct ? handleEditProduct : handleAddProduct}
               />

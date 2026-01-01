@@ -1,5 +1,7 @@
 "use client"
 
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
+
 import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
@@ -62,7 +64,7 @@ export default function EnquiriesPage() {
 
     const subscription = supabase
       .channel("enquiries")
-      .on("postgres_changes", { event: "*", schema: "public", table: "enquiries" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "enquiries" }, (payload: RealtimePostgresChangesPayload<Enquiry>) => {
         if (payload.eventType === "INSERT") {
           setEnquiries((prev) => [payload.new as Enquiry, ...prev])
           toast.success("New enquiry received!")
