@@ -4,11 +4,13 @@ import Link from "next/link"
 import { Button } from "@workspace/ui/components/button"
 import { useState, useEffect } from "react"
 import { Menu, X, Moon, Sun, Clock } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark")
@@ -32,17 +34,43 @@ export function Header() {
     setIsMenuOpen(!isMenuOpen)
   }
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("#")) {
+      e.preventDefault()
+      if (pathname !== "/") {
+        window.location.href = `/${href}`
+        return
+      }
+      const element = document.querySelector(href)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+      setIsMenuOpen(false)
+    } else if (href === "/products") {
+      e.preventDefault()
+      if (pathname !== "/") {
+        window.location.href = "/products"
+      } else {
+        const element = document.querySelector("#products")
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      }
+      setIsMenuOpen(false)
+    }
+  }
+
   const navLinks = [
-    { label: "Products", href: "#products" },
-    { label: "About", href: "#about" },
-    { label: "Contact", href: "#contact" },
+    { label: "Products", href: pathname === "/" ? "#products" : "/products" },
+    { label: "About", href: pathname === "/" ? "#about" : "/#about" },
+    { label: "Contact", href: pathname === "/" ? "#contact" : "/#contact" },
   ]
 
   return (
     <header
       className={`w-full sticky top-0 z-50 transition-all duration-300 ${scrolled
-        ? "py-3 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm"
-        : "py-5 bg-background/95 backdrop-blur-sm border-b border-border/40"
+        ? "py-3 bg-background/90 backdrop-blur-xl border-b border-border/60 shadow-lg shadow-black/5"
+        : "py-5 bg-background/95 backdrop-blur-md border-b border-border/40"
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,14 +91,15 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
-              <Link
+              <a
                 key={link.label}
                 href={link.href}
-                className="relative px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 group"
+                onClick={(e) => handleNavClick(e, link.href)}
+                className="relative px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 rounded-lg hover:bg-muted/50 group cursor-pointer"
               >
                 {link.label}
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-foreground transition-all duration-300 group-hover:w-3/4" />
-              </Link>
+              </a>
             ))}
           </nav>
 
@@ -85,10 +114,16 @@ export function Header() {
             </button>
             <Button
               size="sm"
-              className="rounded-lg bg-foreground text-background hover:bg-foreground/90 px-5 font-medium shadow-sm"
-              asChild
+              className="rounded-lg bg-foreground text-background hover:bg-foreground/90 px-5 font-medium shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+              onClick={(e) => {
+                e.preventDefault()
+                const element = document.querySelector("#contact")
+                if (element) {
+                  element.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              }}
             >
-              <a href="#contact">Enquire Now</a>
+              Enquire Now
             </Button>
           </div>
 
@@ -116,22 +151,32 @@ export function Header() {
           <div className="md:hidden mt-4 pb-4 border-t border-border/40 pt-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <nav className="flex flex-col gap-1">
               {navLinks.map((link) => (
-                <Link
+                <a
                   key={link.label}
                   href={link.href}
-                  className="px-4 py-3 text-base font-medium text-foreground hover:bg-muted rounded-lg transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => {
+                    handleNavClick(e, link.href)
+                    setIsMenuOpen(false)
+                  }}
+                  className="px-4 py-3 text-base font-medium text-foreground hover:bg-muted rounded-lg transition-colors cursor-pointer"
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
             </nav>
             <div className="mt-4 px-4">
               <Button
                 className="w-full rounded-lg bg-foreground text-background hover:bg-foreground/90 font-medium"
-                asChild
+                onClick={(e) => {
+                  e.preventDefault()
+                  const element = document.querySelector("#contact")
+                  if (element) {
+                    element.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  setIsMenuOpen(false)
+                }}
               >
-                <a href="#contact" onClick={() => setIsMenuOpen(false)}>Enquire Now</a>
+                Enquire Now
               </Button>
             </div>
           </div>
@@ -140,4 +185,5 @@ export function Header() {
     </header>
   )
 }
+
 

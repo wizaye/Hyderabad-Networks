@@ -1,34 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@workspace/ui/components/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, Filter } from "lucide-react"
 import Image from "next/image"
 import { useCategories } from "@/hooks/use-categories"
-import { useProducts } from "@/hooks/use-products"
+import { useProductsPaginated } from "@/hooks/use-products-paginated"
 import { Product } from "@/lib/types"
 
-export function ProductList() {
+export function EnhancedProductList() {
     const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
-
-    // Derived category IDs for product fetching
-    // If categories are loading, we pass undefined so useProducts knows to wait (or we can pass [] if we want)
-    // But based on my hook logic: !categoryIds => loading. 
-    // If categories loaded but empty => pass [].
-    const categoryIds = categoriesLoading ? undefined : categories.map(c => c.id)
-
-    const { products, loading: productsLoading, error: productsError } = useProducts(categoryIds)
-
     const [selectedCategory, setSelectedCategory] = useState<string>("")
+    const { products, loading, error, hasMore, loadMore } = useProductsPaginated(selectedCategory || undefined)
+    const observerTarget = useRef<HTMLDivElement>(null)
 
-    const loading = categoriesLoading || productsLoading
-    const error = categoriesError || productsError
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting && hasMore && !loading) {
+                    loadMore()
+                }
+            },
+            { threshold: 0.1 }
+        )
 
-    const filteredProducts = selectedCategory
-        ? products.filter(p => p.category_id === selectedCategory)
-        : products
+        const currentTarget = observerTarget.current
+        if (currentTarget) {
+            observer.observe(currentTarget)
+        }
 
-    if (loading) {
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget)
+            }
+        }
+    }, [hasMore, loading, loadMore])
+
+    const handleCategoryChange = (categoryId: string) => {
+        setSelectedCategory(categoryId)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    if (categoriesLoading) {
         return (
             <div className="flex justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -36,66 +49,90 @@ export function ProductList() {
         )
     }
 
-    if (error) {
+    if (categoriesError) {
         return (
             <div className="text-center py-20 text-red-500">
-                Error loading products: {error}
+                Error loading categories: {categoriesError}
             </div>
         )
     }
 
     return (
         <div className="space-y-8">
-            {/* Filters */}
-            <div className="flex justify-center gap-3 flex-wrap mb-12">
-                <Button
-                    variant={selectedCategory === "" ? "default" : "outline"}
-                    onClick={() => setSelectedCategory("")}
-                    className="rounded-full px-6 py-2.5 transition-all duration-200 hover:scale-105"
-                >
-                    All
-                </Button>
-                {categories.map(cat => (
+            {/* Enhanced Category Filters */}
+            <div className="flex flex-col gap-4 mb-12">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                    <Filter className="w-4 h-4" />
+                    <span>Filter by Category</span>
+                </div>
+                <div className="flex flex-wrap gap-3">
                     <Button
-                        key={cat.id}
-                        variant={selectedCategory === cat.id ? "default" : "outline"}
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className="rounded-full px-6 py-2.5 transition-all duration-200 hover:scale-105"
+                        variant={selectedCategory === "" ? "default" : "outline"}
+                        onClick={() => handleCategoryChange("")}
+                        className="rounded-full px-6 py-2.5 transition-all duration-200 hover:scale-105 font-medium"
                     >
-                        {cat.name}
+                        All Products
                     </Button>
-                ))}
+                    {categories.map(cat => (
+                        <Button
+                            key={cat.id}
+                            variant={selectedCategory === cat.id ? "default" : "outline"}
+                            onClick={() => handleCategoryChange(cat.id)}
+                            className="rounded-full px-6 py-2.5 transition-all duration-200 hover:scale-105 font-medium"
+                        >
+                            {cat.name}
+                        </Button>
+                    ))}
+                </div>
             </div>
 
-            {/* Grid - Show only first 8 products on home page */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-                {filteredProducts.slice(0, 8).map((product, index) => (
-                    <div 
-                        key={product.id}
-                        className="animate-in fade-in slide-in-from-bottom-4"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                        <ProductCard product={product} />
+            {/* Products Grid */}
+            {error ? (
+                <div className="text-center py-20 text-red-500">
+                    Error loading products: {error}
+                </div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+                        {products.map((product, index) => (
+                            <div 
+                                key={product.id}
+                                className="animate-in fade-in slide-in-from-bottom-4"
+                                style={{ animationDelay: `${Math.min(index, 20) * 50}ms` }}
+                            >
+                                <ProductCard product={product} />
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
 
-            {filteredProducts.length > 8 && (
-                <div className="text-center mt-12">
-                    <a 
-                        href="/products" 
-                        className="inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                    >
-                        View All Products ({filteredProducts.length})
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-                    </a>
-                </div>
-            )}
+                    {products.length === 0 && !loading && (
+                        <div className="text-center py-20 text-muted-foreground">
+                            No products found in this category.
+                        </div>
+                    )}
 
-            {filteredProducts.length === 0 && (
-                <div className="text-center py-20 text-muted-foreground">
-                    No products found in this category.
-                </div>
+                    {/* Lazy Loading Trigger */}
+                    {hasMore && (
+                        <div ref={observerTarget} className="flex justify-center py-8">
+                            {loading && (
+                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                            )}
+                        </div>
+                    )}
+
+                    {/* Manual Load More Button (fallback) */}
+                    {hasMore && !loading && (
+                        <div className="flex justify-center pt-4">
+                            <Button
+                                onClick={loadMore}
+                                variant="outline"
+                                className="rounded-lg px-8 py-6"
+                            >
+                                Load More Products
+                            </Button>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     )
@@ -104,26 +141,19 @@ export function ProductList() {
 function ProductCard({ product }: { product: Product }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-    // Aggregate all images from all variants, attaching is_default from the variant
     const allImages = product.variants?.flatMap(v =>
         (v.images || []).map(img => ({ ...img, isVariantDefault: v.is_default }))
     ) || []
 
-    // Sort images: Primary images first, then default variant images, then others
     const sortedImages = [...allImages].sort((a, b) => {
         if (a.is_primary && !b.is_primary) return -1
         if (!a.is_primary && b.is_primary) return 1
-
-        // If neither is primary, prefer default variant images
         if (a.isVariantDefault && !b.isVariantDefault) return -1
         if (!a.isVariantDefault && b.isVariantDefault) return 1
-
         return 0
     })
 
-    // Deduplicate images by URL
     const uniqueImages = Array.from(new Map(sortedImages.map(img => [img.image_url, img])).values())
-
     const hasImages = uniqueImages.length > 0
     const currentImage = hasImages ? uniqueImages[currentImageIndex] : null
 
@@ -146,10 +176,6 @@ function ProductCard({ product }: { product: Product }) {
             <div className="aspect-square bg-muted relative overflow-hidden flex items-center justify-center">
                 {currentImage ? (
                     <>
-                        {/* 
-                           We use fill + object-cover + sizes to lazy load and optimize.
-                           Added explicit loading="lazy" (though default in Next.js) to ensure behavior.
-                        */}
                         <Image
                             src={currentImage.image_url}
                             alt={product.model_number}
@@ -159,7 +185,6 @@ function ProductCard({ product }: { product: Product }) {
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                         />
 
-                        {/* Carousel Navigation - Visible on Group Hover */}
                         {uniqueImages.length > 1 && (
                             <>
                                 <button
@@ -179,16 +204,15 @@ function ProductCard({ product }: { product: Product }) {
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
                                 </button>
 
-                                {/* Indicators */}
                                 <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
                                     {uniqueImages.map((_, idx) => (
                                         <button
                                             key={idx}
                                             type="button"
                                             onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setCurrentImageIndex(idx);
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                setCurrentImageIndex(idx)
                                             }}
                                             className={`w-1.5 h-1.5 rounded-full transition-colors box-content border border-black/10 ${idx === currentImageIndex ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/80'}`}
                                             aria-label={`Go to image ${idx + 1}`}
@@ -226,3 +250,4 @@ function ProductCard({ product }: { product: Product }) {
         </div>
     )
 }
+

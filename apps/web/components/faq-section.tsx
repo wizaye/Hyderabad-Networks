@@ -35,34 +35,34 @@ export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section className="py-20 sm:py-24 md:py-32 px-4 sm:px-6 bg-background">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+    <section className="py-16 sm:py-20 md:py-24 px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
           <div>
-            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl leading-tight font-light">
+            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl leading-tight font-light mb-4">
               Common Questions
               <br />
               <span className="font-normal">Answered</span>
             </h2>
-            <p className="mt-4 text-muted-foreground text-base">
+            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
               Everything you need to know about our products and services.
             </p>
           </div>
           <div className="space-y-0">
             {faqs.map((faq, index) => (
-              <div key={index} className="border-t border-border">
+              <div key={index} className="border-t border-border first:border-t-0">
                 <button
                   onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                  className="w-full flex items-start justify-between py-5 text-left gap-4 group hover:bg-muted/30 transition-colors rounded-lg px-2 -mx-2"
+                  className="w-full flex items-start justify-between py-4 text-left gap-4 hover:bg-muted/50 transition-colors rounded-md px-2 -mx-2"
                 >
-                  <span className="text-sm font-medium text-foreground pr-2 leading-relaxed">{faq.question}</span>
+                  <span className="text-sm sm:text-base font-medium text-foreground pr-2">{faq.question}</span>
                   <Plus
-                    className={`w-5 h-5 flex-shrink-0 mt-0.5 text-muted-foreground group-hover:text-foreground transition-all duration-200`}
+                    className={`w-5 h-5 flex-shrink-0 mt-0.5 text-muted-foreground transition-transform`}
                     style={{ transform: openIndex === index ? "rotate(45deg)" : "rotate(0deg)" }}
                   />
                 </button>
                 {openIndex === index && (
-                  <div className="pb-5 pl-2 text-sm text-muted-foreground leading-relaxed animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="pb-4 pl-2 text-sm text-muted-foreground leading-relaxed">
                     {faq.answer}
                   </div>
                 )}
@@ -75,4 +75,5 @@ export function FaqSection() {
     </section>
   )
 }
+
 
